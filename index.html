@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHEN-RISK | Dashboard</title>
+    
+    <!-- React & Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Leaflet for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        :root {
+            --primary-green: #4A7C59;
+            --primary-orange: #F5A623;
+            --primary-navy: #1F4788;
+            --bg-light: #f8f9fa;
+            --bg-white: #ffffff;
+            --text-dark: #1a202c;
+            --text-gray: #718096;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg-light: #1a202c;
+            --bg-white: #2d3748;
+            --text-dark: #f7fafc;
+            --text-gray: #cbd5e0;
+            --border-color: #4a5568;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        body[data-theme="light"] {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: #ffffff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+        }
+
+        .title-section h1 {
+            font-size: 28px;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .title-section p {
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3d6549;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .theme-toggle {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--bg-light);
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(180deg);
+        }
+
+        /* District Selector */
+        .district-selector {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .district-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .district-card {
+            padding: 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .district-card:hover {
+            border-color: var(--primary-green);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .district-card.active {
+            background: var(--primary-green);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .district-name {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .district-status {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 24px;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            color: var(--text-gray);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-change {
+            margin-top: 8px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-change.positive {
+            color: #48bb78;
+        }
+
+        .stat-change.negative {
+            color: #f56565;
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Map Container */
+        .map-container {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            height: 600px;
+        }
+
+        .map-wrapper {
+            width: 100%;
+            height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        /* Chart */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        /* Alert Feed */
+        .alert-item {
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            transition: all 0.2s;
+        }
+
+        .alert-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow);
+        }
+
+        .alert-high {
+            background: rgba(252, 129, 129, 0.1);
+            border-color: #fc8181;
+        }
+
+        .alert-moderate {
+            background: rgba(246, 173, 85, 0.1);
+            border-color: #f6ad55;
+        }
+
+        .alert-low {
+            background: rgba(104, 211, 145, 0.1);
+            border-color: #68d391;
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .alert-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-dark);
+        }
+
+        .alert-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-high {
+            background: #fc8181;
+            color: white;
+        }
+
+        .badge-moderate {
+            background: #f6ad55;
+            color: white;
+        }
+
+        .badge-low {
+            background: #68d391;
+            color: white;
+        }
+
+        /* Risk Table */
+        .risk-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .risk-table th {
+            text-align: left;
+            padding: 12px;
+            background: var(--bg-light);
+            color: var(--text-gray);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .risk-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .risk-table tr:hover {
+            background: var(--bg-light);
+        }
+
+        .risk-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border-color);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .risk-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .risk-fill-high {
+            background: linear-gradient(90deg, #fc8181 0%, #e53e3e 100%);
+        }
+
+        .risk-fill-moderate {
+            background: linear-gradient(90deg, #f6ad55 0%, #ed8936 100%);
+        }
+
+        .risk-fill-low {
+            background: linear-gradient(90deg, #68d391 0%, #48bb78 100%);
+        }
+
+        /* Export Panel */
+        .export-panel {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--bg-light);
+            border-radius: 8px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            margin-top: 24px;
+        }
+
+        .footer-text {
+            color: var(--text-gray);
+            font-size: 14px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-light);
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .district-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Sample data for multiple districts
+        const districtData = {
+            'bamako': {
+                name: 'Bamako',
+                country: 'Mali',
+                coordinates: [12.65, -8.0],
+                timeseries: [
+                    { date: '2024-01-01', month: 1, ndvi_zscore: -2.87, price: 204, risk_score: 56, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-02-01', month: 2, ndvi_zscore: -5.71, price: 209, risk_score: 69, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-03-01', month: 3, ndvi_zscore: -5.31, price: 225, risk_score: 55, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-04-01', month: 4, ndvi_zscore: -5.42, price: 242, risk_score: 61, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-05-01', month: 5, ndvi_zscore: -3.11, price: 238, risk_score: 58, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-06-01', month: 6, ndvi_zscore: -4.42, price: 248, risk_score: 73, risk_level: 'HIGH RISK', source: 'Sentinel-2' },
+                    { date: '2024-07-01', month: 7, ndvi_zscore: -5.30, price: 283, risk_score: 77, risk_level: 'HIGH RISK', source: 'Landsat' },
+                    { date: '2024-08-01', month: 8, ndvi_zscore: 0.39, price: 296, risk_score: 44, risk_level: 'LOW RISK', source: 'MODIS' },
+                    { date: '2024-09-01', month: 9, ndvi_zscore: -0.62, price: 306, risk_score: 64, risk_level: 'MODERATE RISK', source: 'Landsat' },
+                    { date: '2024-10-01', month: 10, ndvi_zscore: 0.20, price: 284, risk_score: 42, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-11-01', month: 11, ndvi_zscore: -1.48, price: 246, risk_score: 62, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-12-01', month: 12, ndvi_zscore: -1.74, price: 216, risk_score: 42, risk_level: 'LOW RISK', source: 'Sentinel-2' }
+                ]
+            },
+            'niamey': {
+                name: 'Niamey',
+                country: 'Niger',
+                coordinates: [13.5127, 2.1154],
+                timeseries: [
+                    { date: '2024-01-01', month: 1, ndvi_zscore: -1.2, price: 195, risk_score: 45, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-02-01', month: 2, ndvi_zscore: -2.1, price: 198, risk_score: 52, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-03-01', month: 3, ndvi_zscore: -2.8, price: 205, risk_score: 58, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-04-01', month: 4, ndvi_zscore: -3.2, price: 218, risk_score: 63, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-05-01', month: 5, ndvi_zscore: -1.8, price: 225, risk_score: 55, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-06-01', month: 6, ndvi_zscore: -2.5, price: 235, risk_score: 62, risk_level: 'MODERATE RISK', source: 'Landsat' },
+                    { date: '2024-07-01', month: 7, ndvi_zscore: -1.9, price: 245, risk_score: 58, risk_level: 'MODERATE RISK', source: 'MODIS' },
+                    { date: '2024-08-01', month: 8, ndvi_zscore: 0.5, price: 252, risk_score: 41, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-09-01', month: 9, ndvi_zscore: 1.2, price: 248, risk_score: 35, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-10-01', month: 10, ndvi_zscore: 0.8, price: 235, risk_score: 38, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-11-01', month: 11, ndvi_zscore: -0.5, price: 220, risk_score: 48, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-12-01', month: 12, ndvi_zscore: -1.1, price: 205, risk_score: 45, risk_level: 'LOW RISK', source: 'Sentinel-2' }
+                ]
+            },
+            'ouagadougou': {
+                name: 'Ouagadougou',
+                country: 'Burkina Faso',
+                coordinates: [12.3714, -1.5247],
+                timeseries: [
+                    { date: '2024-01-01', month: 1, ndvi_zscore: -3.5, price: 210, risk_score: 65, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-02-01', month: 2, ndvi_zscore: -4.8, price: 218, risk_score: 72, risk_level: 'HIGH RISK', source: 'Sentinel-2' },
+                    { date: '2024-03-01', month: 3, ndvi_zscore: -5.1, price: 230, risk_score: 75, risk_level: 'HIGH RISK', source: 'Sentinel-2' },
+                    { date: '2024-04-01', month: 4, ndvi_zscore: -4.9, price: 245, risk_score: 73, risk_level: 'HIGH RISK', source: 'Landsat' },
+                    { date: '2024-05-01', month: 5, ndvi_zscore: -3.8, price: 258, risk_score: 68, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-06-01', month: 6, ndvi_zscore: -3.2, price: 270, risk_score: 70, risk_level: 'HIGH RISK', source: 'MODIS' },
+                    { date: '2024-07-01', month: 7, ndvi_zscore: -2.8, price: 285, risk_score: 68, risk_level: 'MODERATE RISK', source: 'Landsat' },
+                    { date: '2024-08-01', month: 8, ndvi_zscore: -0.3, price: 295, risk_score: 52, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-09-01', month: 9, ndvi_zscore: 0.8, price: 285, risk_score: 45, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-10-01', month: 10, ndvi_zscore: 0.5, price: 270, risk_score: 42, risk_level: 'LOW RISK', source: 'Sentinel-2' },
+                    { date: '2024-11-01', month: 11, ndvi_zscore: -1.2, price: 250, risk_score: 55, risk_level: 'MODERATE RISK', source: 'Sentinel-2' },
+                    { date: '2024-12-01', month: 12, ndvi_zscore: -2.1, price: 230, risk_score: 58, risk_level: 'MODERATE RISK', source: 'Sentinel-2' }
+                ]
+            }
+        };
+
+        function Dashboard() {
+            const [selectedDistrict, setSelectedDistrict] = useState('bamako');
+            const [theme, setTheme] = useState('light');
+            const [showExportModal, setShowExportModal] = useState(false);
+            const chartRef = useRef(null);
+            const chartInstance = useRef(null);
+            const mapRef = useRef(null);
+            const mapInstance = useRef(null);
+
+            const currentData = districtData[selectedDistrict];
+
+            // Theme toggle
+            useEffect(() => {
+                document.body.setAttribute('data-theme', theme);
+            }, [theme]);
+
+            // Initialize map
+            useEffect(() => {
+                if (mapRef.current && !mapInstance.current) {
+                    mapInstance.current = L.map('map').setView([12.5, -2.0], 5);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(mapInstance.current);
+
+                    // Add markers for all districts
+                    Object.entries(districtData).forEach(([key, district]) => {
+                        const highRisk = district.timeseries.filter(d => d.risk_level === 'HIGH RISK').length;
+                        const color = highRisk >= 3 ? 'red' : highRisk >= 1 ? 'orange' : 'green';
+                        
+                        const marker = L.circleMarker(district.coordinates, {
+                            radius: 12,
+                            fillColor: color,
+                            color: 'white',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(mapInstance.current);
+
+                        marker.bindPopup(`
+                            <b>${district.name}, ${district.country}</b><br>
+                            High Risk Months: ${highRisk}<br>
+                            <a href="#" onclick="return false;">View Details</a>
+                        `);
+
+                        marker.on('click', () => setSelectedDistrict(key));
+                    });
+                }
+
+                // Update map view when district changes
+                if (mapInstance.current && currentData) {
+                    mapInstance.current.setView(currentData.coordinates, 8);
+                }
+            }, [selectedDistrict]);
+
+            // Initialize chart
+            useEffect(() => {
+                if (chartRef.current && currentData) {
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+
+                    const labels = currentData.timeseries.map(d => {
+                        const date = new Date(d.date);
+                        return date.toLocaleString('default', { month: 'short' });
+                    });
+
+                    const isDark = theme === 'dark';
+
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'NDVI Z-Score',
+                                    data: currentData.timeseries.map(d => d.ndvi_zscore),
+                                    borderColor: '#4A7C59',
+                                    backgroundColor: 'rgba(74, 124, 89, 0.1)',
+                                    yAxisID: 'y',
+                                    tension: 0.4,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
+                                    borderWidth: 3
+                                },
+                                {
+                                    label: 'Price (XOF/kg)',
+                                    data: currentData.timeseries.map(d => d.price),
+                                    borderColor: '#E53E3E',
+                                    backgroundColor: 'rgba(229, 62, 62, 0.1)',
+                                    yAxisID: 'y1',
+                                    tension: 0.4,
+                                    pointRadius: 6,
+                                    pointHoverRadius: 8,
+                                    borderWidth: 3
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    labels: {
+                                        color: isDark ? '#f7fafc' : '#1a202c',
+                                        padding: 15,
+                                        font: { size: 13 }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    padding: 12,
+                                    titleFont: { size: 14 },
+                                    bodyFont: { size: 13 }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'left',
+                                    title: {
+                                        display: true,
+                                        text: 'NDVI Z-Score',
+                                        color: '#4A7C59',
+                                        font: { weight: 'bold', size: 13 }
+                                    },
+                                    ticks: {
+                                        color: isDark ? '#cbd5e0' : '#718096'
+                                    },
+                                    grid: {
+                                        color: isDark ? '#4a5568' : '#e2e8f0'
+                                    }
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    display: true,
+                                    position: 'right',
+                                    title: {
+                                        display: true,
+                                        text: 'Price (XOF/kg)',
+                                        color: '#E53E3E',
+                                        font: { weight: 'bold', size: 13 }
+                                    },
+                                    ticks: {
+                                        color: isDark ? '#cbd5e0' : '#718096'
+                                    },
+                                    grid: {
+                                        drawOnChartArea: false,
+                                    }
+                                },
+                                x: {
+                                    ticks: {
+                                        color: isDark ? '#cbd5e0' : '#718096'
+                                    },
+                                    grid: {
+                                        color: isDark ? '#4a5568' : '#e2e8f0'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [selectedDistrict, theme]);
+
+            // Export functions
+            const exportToCSV = () => {
+                const csv = [
+                    ['Date', 'NDVI Z-Score', 'Price', 'Risk Score', 'Risk Level', 'Source'],
+                    ...currentData.timeseries.map(d => [
+                        d.date, d.ndvi_zscore, d.price, d.risk_score, d.risk_level, d.source
+                    ])
+                ].map(row => row.join(',')).join('\n');
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `phen-risk-${selectedDistrict}-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+            };
+
+            const exportToJSON = () => {
+                const json = JSON.stringify({
+                    district: currentData.name,
+                    country: currentData.country,
+                    exported_at: new Date().toISOString(),
+                    data: currentData.timeseries
+                }, null, 2);
+
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `phen-risk-${selectedDistrict}-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            };
+
+            const highRiskMonths = currentData.timeseries.filter(d => d.risk_level === 'HIGH RISK');
+            const moderateRiskMonths = currentData.timeseries.filter(d => d.risk_level === 'MODERATE RISK');
+            const avgRiskScore = Math.round(currentData.timeseries.reduce((sum, d) => sum + d.risk_score, 0) / currentData.timeseries.length);
+
+            return (
+                <div className="container">
+                    {/* Header */}
+                    <div className="header">
+                        <div className="header-content">
+                            <div className="logo-section">
+                                <div className="logo">
+                                    <img 
+                                        src="logo.svg" 
+                                        alt="PHEN-RISK Logo"
+                                        style={{width: '100%', height: '100%', objectFit: 'contain'}}
+                                    />
+                                </div>
+                                <div className="title-section">
+                                    <h1>PHEN-RISK</h1>
+                                    <p>Phenological Risk Intelligence System</p>
+                                </div>
+                            </div>
+                            <div className="header-actions">
+                                <button className="btn btn-primary" onClick={() => setShowExportModal(true)}>
+                                    📥 Export Data
+                                </button>
+                                <button 
+                                    className="theme-toggle"
+                                    onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                                >
+                                    {theme === 'light' ? '🌙' : '☀️'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* District Selector */}
+                    <div className="district-selector">
+                        <h3 style={{marginBottom: '12px'}}>Select District</h3>
+                        <div className="district-grid">
+                            {Object.entries(districtData).map(([key, district]) => {
+                                const highRisk = district.timeseries.filter(d => d.risk_level === 'HIGH RISK').length;
+                                return (
+                                    <div 
+                                        key={key}
+                                        className={`district-card ${selectedDistrict === key ? 'active' : ''}`}
+                                        onClick={() => setSelectedDistrict(key)}
+                                    >
+                                        <div className="district-name">{district.name}, {district.country}</div>
+                                        <div className="district-status">
+                                            {highRisk > 0 ? `${highRisk} High Risk Months` : 'Low Risk'}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
+                                📊
+                            </div>
+                            <div className="stat-value">{avgRiskScore}</div>
+                            <div className="stat-label">Avg Risk Score</div>
+                            <div className="stat-change positive">↓ 12% vs last year</div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'}}>
+                                🚨
+                            </div>
+                            <div className="stat-value">{highRiskMonths.length}</div>
+                            <div className="stat-label">High Risk Months</div>
+                            <div className="stat-change negative">↑ 1 vs last year</div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'}}>
+                                📡
+                            </div>
+                            <div className="stat-value">3</div>
+                            <div className="stat-label">Satellites Active</div>
+                            <div className="stat-change positive">100% Coverage</div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-icon" style={{background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'}}>
+                                ⏱️
+                            </div>
+                            <div className="stat-value">35</div>
+                            <div className="stat-label">Weeks Lead Time</div>
+                            <div className="stat-change positive">vs 2-3 weeks traditional</div>
+                        </div>
+                    </div>
+
+                    {/* Main Grid */}
+                    <div className="main-grid">
+                        {/* Map */}
+                        <div className="map-container">
+                            <div className="card-header" style={{paddingBottom: '12px'}}>
+                                <div>
+                                    <div className="card-title">Regional Risk Map</div>
+                                    <div className="card-subtitle">Click markers to view district details</div>
+                                </div>
+                            </div>
+                            <div className="map-wrapper">
+                                <div id="map" ref={mapRef}></div>
+                            </div>
+                        </div>
+
+                        {/* Alert Feed */}
+                        <div className="card">
+                            <div className="card-header">
+                                <div className="card-title">Risk Alerts</div>
+                            </div>
+                            
+                            {highRiskMonths.length > 0 ? (
+                                highRiskMonths.map((month, idx) => (
+                                    <div key={idx} className="alert-item alert-high">
+                                        <div className="alert-header">
+                                            <div className="alert-title">
+                                                {new Date(month.date).toLocaleString('default', { month: 'long' })} 2024
+                                            </div>
+                                            <span className="alert-badge badge-high">High Risk</span>
+                                        </div>
+                                        <div className="alert-details">
+                                            NDVI: {month.ndvi_zscore.toFixed(2)} • 
+                                            Price: {month.price} XOF • 
+                                            Score: {month.risk_score}/100
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="alert-item alert-low">
+                                    <div className="alert-header">
+                                        <div className="alert-title">No High Risk Alerts</div>
+                                        <span className="alert-badge badge-low">All Clear</span>
+                                    </div>
+                                    <div className="alert-details">
+                                        This district is currently in low to moderate risk status.
+                                    </div>
+                                </div>
+                            )}
+
+                            {moderateRiskMonths.slice(0, 3).map((month, idx) => (
+                                <div key={idx} className="alert-item alert-moderate">
+                                    <div className="alert-header">
+                                        <div className="alert-title">
+                                            {new Date(month.date).toLocaleString('default', { month: 'long' })} 2024
+                                        </div>
+                                        <span className="alert-badge badge-moderate">Moderate</span>
+                                    </div>
+                                    <div className="alert-details">
+                                        NDVI: {month.ndvi_zscore.toFixed(2)} • 
+                                        Score: {month.risk_score}/100
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Chart */}
+                    <div className="card" style={{marginBottom: '24px'}}>
+                        <div className="card-header">
+                            <div>
+                                <div className="card-title">NDVI Anomalies vs Food Prices</div>
+                                <div className="card-subtitle">{currentData.name}, {currentData.country} • 2024</div>
+                            </div>
+                        </div>
+                        <div className="chart-container">
+                            <canvas ref={chartRef}></canvas>
+                        </div>
+                    </div>
+
+                    {/* Risk Table */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="card-title">Monthly Risk Assessment</div>
+                        </div>
+                        <table className="risk-table">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>NDVI Z-Score</th>
+                                    <th>Price</th>
+                                    <th>Risk Score</th>
+                                    <th>Status</th>
+                                    <th>Source</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentData.timeseries.map((row, idx) => {
+                                    const riskClass = row.risk_level.includes('HIGH') ? 'high' : 
+                                                     row.risk_level.includes('MODERATE') ? 'moderate' : 'low';
+                                    return (
+                                        <tr key={idx}>
+                                            <td><strong>{new Date(row.date).toLocaleString('default', { month: 'short' })}</strong></td>
+                                            <td>{row.ndvi_zscore > 0 ? '+' : ''}{row.ndvi_zscore.toFixed(2)}</td>
+                                            <td>{row.price} XOF</td>
+                                            <td>
+                                                <div className="risk-bar">
+                                                    <div 
+                                                        className={`risk-bar-fill risk-fill-${riskClass}`}
+                                                        style={{width: `${row.risk_score}%`}}
+                                                    ></div>
+                                                </div>
+                                                <small>{row.risk_score}/100</small>
+                                            </td>
+                                            <td>
+                                                <span className={`alert-badge badge-${riskClass}`}>
+                                                    {row.risk_level.replace(' RISK', '')}
+                                                </span>
+                                            </td>
+                                            <td><small>{row.source}</small></td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="footer">
+                        <div className="footer-text">
+                            PHEN-RISK Enhanced Dashboard • Multi-Satellite Early Warning System<br/>
+                            Powered by Sentinel-2, Landsat 8/9, and MODIS • Last Updated: 2024-12-31
+                        </div>
+                    </div>
+
+                    {/* Export Modal */}
+                    {showExportModal && (
+                        <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
+                            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                                <h2 className="modal-title">Export Data</h2>
+                                <p style={{marginBottom: '20px', color: 'var(--text-gray)'}}>
+                                    Download data for {currentData.name}, {currentData.country}
+                                </p>
+                                
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    <button className="btn btn-primary" onClick={exportToCSV}>
+                                        📄 Export as CSV
+                                    </button>
+                                    <button className="btn btn-primary" onClick={exportToJSON}>
+                                        📋 Export as JSON
+                                    </button>
+                                    <button className="btn btn-secondary" onClick={() => setShowExportModal(false)}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<Dashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>

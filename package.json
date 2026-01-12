@@ -1,0 +1,12 @@
+{
+  "name": "phen-risk-dashboard",
+  "version": "1.0.0",
+  "description": "PHEN-RISK Phenological Risk Intelligence System Dashboard",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static site - no build needed'"
+  },
+  "keywords": ["agriculture", "risk-assessment", "dashboard", "satellite-data"],
+  "author": "Your Name",
+  "license": "MIT"
+}
