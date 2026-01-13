@@ -1,74 +1,82 @@
-# PHEN-RISK Dashboard - Simple Deployment
+# PHEN-RISK Dashboard - Logo Embedded Version
 
-## Quick Fix for Your Current Vercel Issue
+## 🎯 This Version GUARANTEES Logo Display
 
-### Problem
-- Logo showing as "ERR_FILE_NOT_FOUND"
-- Files not loading correctly
+This version has the **logo embedded directly in the HTML** as base64 data.
 
-### Solution
+**No separate logo.svg file needed!**
 
-This folder contains ONLY the essential files:
-- `index.html` (with relative logo path `./logo.svg`)
-- `logo.svg`
+## ✅ Advantages
 
-## 🚀 Deploy to Vercel (3 Methods)
+- ✓ Logo always displays (no path issues)
+- ✓ Single file deployment
+- ✓ No CORS issues
+- ✓ Works everywhere
 
-### Method 1: CLI Redeploy
+## 📦 What's Included
+
+- `index.html` - Complete dashboard with embedded logo (single file!)
+
+## 🚀 Deploy to Vercel
+
+### Method 1: GitHub (Recommended)
+
 ```bash
-cd phen-risk-simple
+# In your GitHub repository folder
+cd phen-risk-dashboard
+
+# Copy this index.html to replace the old one
+# (download from the zip)
+
+# Push to GitHub
+git add index.html
+git commit -m "Fix: Embed logo in HTML"
+git push
+```
+
+Vercel will auto-deploy in ~30 seconds!
+
+### Method 2: Vercel CLI
+
+```bash
+# Extract this folder
+cd phen-risk-embedded
+
+# Deploy
 vercel --prod
 ```
 
-### Method 2: Drag & Drop
-1. Go to https://vercel.com/dashboard
-2. Delete your old project (or create new one)
-3. Click "Add New" → "Project"  
-4. Drag THIS folder (`phen-risk-simple`)
-5. Click "Deploy"
+### Method 3: Drag & Drop
 
-### Method 3: GitHub
-1. Delete old repository (or create new one)
-2. Push these 2 files to GitHub:
-   ```bash
-   git init
-   git add index.html logo.svg
-   git commit -m "PHEN-RISK Dashboard"
-   git push
-   ```
-3. Import to Vercel from https://vercel.com/new
+1. Extract this folder
+2. Go to https://vercel.com/dashboard
+3. Find your project
+4. Settings → Git → Disconnect
+5. Add New → Project
+6. Drag this folder
+7. Deploy
 
-## ✅ What's Different
+## 🔍 Why This Works
 
-**Old setup** (causing issues):
-- Had unnecessary `vercel.json` config
-- Had empty `public/` folder
-- Used absolute path `/logo.svg`
+**Problem:** Vercel wasn't finding `logo.svg` as a separate file
 
-**New setup** (works perfectly):
-- Just 2 files: `index.html` + `logo.svg`
-- No configuration needed
-- Uses relative path `./logo.svg`
+**Solution:** Logo is now embedded in the HTML as:
+```html
+<img src="data:image/svg+xml;base64,..." />
+```
 
-## 🔍 Verification
+This means the logo travels WITH the HTML - no separate file needed!
 
-After deploying, check:
-1. Logo appears in header ✅
-2. No console errors ✅
-3. All emojis display correctly ✅
+## ⚡ Quick Test
 
-## 💡 Tips
+Open `index.html` in any browser:
+- Right-click → Open with → Browser
+- Logo should display immediately
+- No server needed!
 
-- Vercel automatically detects this as a static site
-- No build process needed
-- Deploy takes ~30 seconds
-- Your URL: `https://your-project.vercel.app`
+## 🎉 Result
 
-## 🆘 Still Having Issues?
+After deploying, your logo will display perfectly at:
+https://phen-risk.vercel.app/
 
-Try clearing Vercel cache:
-1. Go to your project settings
-2. "Advanced" → "Clear Cache"
-3. Redeploy
-
-Or contact me for help!
+No more "ERR_FILE_NOT_FOUND" errors!
