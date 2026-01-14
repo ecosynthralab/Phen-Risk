@@ -489,6 +489,16 @@
             font-size: 14px;
         }
 
+        .footer a {
+            transition: all 0.2s ease;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
+            text-decoration: underline !important;
+            transform: translateY(-2px);
+        }
+
         /* Modal */
         .modal-overlay {
             position: fixed;
@@ -1065,6 +1075,32 @@
                         <div className="footer-text">
                             PHEN-RISK Enhanced Dashboard • Multi-Satellite Early Warning System<br/>
                             Powered by Sentinel-2, Landsat 8/9, and MODIS • Last Updated: 2024-12-31
+                        </div>
+                        <div style={{marginTop: '16px', display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap'}}>
+                            <a 
+                                href="https://github.com/ecosynthralab/Phen-Risk/blob/main/README.md" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{color: 'var(--primary-green)', textDecoration: 'none', fontSize: '14px', fontWeight: '600'}}
+                            >
+                                📖 Documentation
+                            </a>
+                            <a 
+                                href="https://github.com/ecosynthralab/Phen-Risk/blob/main/USER_GUIDE.md" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{color: 'var(--primary-green)', textDecoration: 'none', fontSize: '14px', fontWeight: '600'}}
+                            >
+                                📚 User Guide
+                            </a>
+                            <a 
+                                href="https://github.com/ecosynthralab/Phen-Risk" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{color: 'var(--primary-green)', textDecoration: 'none', fontSize: '14px', fontWeight: '600'}}
+                            >
+                                💻 GitHub Repository
+                            </a>
                         </div>
                     </div>
 
