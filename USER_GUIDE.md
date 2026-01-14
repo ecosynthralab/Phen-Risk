@@ -208,7 +208,7 @@ A: Yes! Optimized for phones and tablets.
 
 **Report Issues:**
 - Open an issue on GitHub
-- Or email: support@phen-risk.org (example)
+- Or email: ecosynthralab@gmail.com
 
 **Request New Features:**
 - We're always improving!
