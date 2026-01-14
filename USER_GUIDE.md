@@ -12,7 +12,7 @@ PHEN-RISK is a **free online tool** that helps predict food security risks in We
 
 ### The Problem
 - Traditional systems detect food crises AFTER they happen
-- By then, it's often too late to help everyone
+- By then, it is often too late to help everyone
 - Response time is only 2-3 weeks
 
 ### Our Solution
