@@ -19,6 +19,9 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
     
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <style>
         :root {
             --primary-green: #4A7C59;
@@ -1347,6 +1350,231 @@
                 a.click();
             };
 
+            const exportToPDF = () => {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                let yPos = 20;
+                const leftMargin = 20;
+                const pageWidth = 170; // 210mm - margins
+                
+                // Title
+                doc.setFontSize(22);
+                doc.setTextColor(74, 124, 89); // Primary green
+                doc.text('PHEN-RISK Report', leftMargin, yPos);
+                
+                yPos += 10;
+                doc.setFontSize(16);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`${currentData.name}, ${currentData.country}`, leftMargin, yPos);
+                
+                yPos += 7;
+                doc.setFontSize(10);
+                doc.setTextColor(113, 128, 150); // Text gray
+                doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', month: 'long', day: 'numeric' 
+                })}`, leftMargin, yPos);
+                
+                // Section: Executive Summary
+                yPos += 15;
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Executive Summary', leftMargin, yPos);
+                
+                yPos += 8;
+                doc.setFontSize(10);
+                const highRiskCount = currentData.timeseries.filter(d => d.risk_level === 'HIGH RISK').length;
+                const moderateRiskCount = currentData.timeseries.filter(d => d.risk_level === 'MODERATE RISK').length;
+                const avgRisk = Math.round(currentData.timeseries.reduce((sum, d) => sum + d.risk_score, 0) / currentData.timeseries.length);
+                const validationAccuracy = currentData.validationHistory?.length > 0 
+                    ? (currentData.validationHistory.filter(v => v.outcome === 'correct').length / currentData.validationHistory.length * 100)
+                    : 0;
+                
+                const summaryLines = [
+                    `Average Risk Score: ${avgRisk}/100`,
+                    `High Risk Months: ${highRiskCount}`,
+                    `Moderate Risk Months: ${moderateRiskCount}`,
+                    `Prediction Accuracy: ${validationAccuracy.toFixed(0)}%`,
+                    `Data Sources: Sentinel-2, Landsat 8/9, MODIS`
+                ];
+                
+                summaryLines.forEach(line => {
+                    doc.text(line, leftMargin + 5, yPos);
+                    yPos += 6;
+                });
+                
+                // Section: Risk Score Breakdown
+                yPos += 10;
+                doc.setFontSize(14);
+                doc.text('Monthly Risk Assessment', leftMargin, yPos);
+                
+                yPos += 8;
+                doc.setFontSize(9);
+                
+                // Table headers
+                doc.setFillColor(248, 249, 250);
+                doc.rect(leftMargin, yPos - 5, pageWidth, 8, 'F');
+                doc.setTextColor(113, 128, 150);
+                doc.text('Month', leftMargin + 2, yPos);
+                doc.text('NDVI', leftMargin + 25, yPos);
+                doc.text('Price (XOF)', leftMargin + 50, yPos);
+                doc.text('Risk Score', leftMargin + 85, yPos);
+                doc.text('Status', leftMargin + 115, yPos);
+                doc.text('Source', leftMargin + 145, yPos);
+                
+                yPos += 8;
+                doc.setTextColor(0, 0, 0);
+                
+                // Table data
+                currentData.timeseries.forEach((row, idx) => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    const month = new Date(row.date).toLocaleString('default', { month: 'short' });
+                    const riskColor = row.risk_level.includes('HIGH') ? [252, 129, 129] : 
+                                     row.risk_level.includes('MODERATE') ? [246, 173, 85] : [104, 211, 145];
+                    
+                    doc.text(month, leftMargin + 2, yPos);
+                    doc.text(row.ndvi_zscore.toFixed(2), leftMargin + 25, yPos);
+                    doc.text(row.price.toString(), leftMargin + 50, yPos);
+                    doc.text(`${row.risk_score}/100`, leftMargin + 85, yPos);
+                    
+                    // Risk status with color
+                    doc.setTextColor(...riskColor);
+                    doc.text(row.risk_level.replace(' RISK', ''), leftMargin + 115, yPos);
+                    doc.setTextColor(0, 0, 0);
+                    
+                    doc.setFontSize(8);
+                    doc.text(row.source, leftMargin + 145, yPos);
+                    doc.setFontSize(9);
+                    
+                    yPos += 7;
+                });
+                
+                // Add chart image if available
+                if (chartRef.current) {
+                    doc.addPage();
+                    yPos = 20;
+                    
+                    doc.setFontSize(14);
+                    doc.text('NDVI Anomalies vs Food Prices', leftMargin, yPos);
+                    
+                    yPos += 10;
+                    try {
+                        const chartImage = chartRef.current.toDataURL('image/png');
+                        doc.addImage(chartImage, 'PNG', leftMargin, yPos, pageWidth, 100);
+                        yPos += 110;
+                    } catch (error) {
+                        doc.setFontSize(10);
+                        doc.text('Chart visualization not available in export', leftMargin, yPos);
+                        yPos += 10;
+                    }
+                }
+                
+                // Section: Validation History
+                if (currentData.validationHistory && currentData.validationHistory.length > 0) {
+                    doc.addPage();
+                    yPos = 20;
+                    
+                    doc.setFontSize(14);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text('Validation History', leftMargin, yPos);
+                    
+                    yPos += 10;
+                    doc.setFontSize(10);
+                    doc.text(`Prediction Accuracy: ${validationAccuracy.toFixed(0)}% (${currentData.validationHistory.filter(v => v.outcome === 'correct').length}/${currentData.validationHistory.length} correct)`, leftMargin, yPos);
+                    
+                    yPos += 10;
+                    
+                    currentData.validationHistory.forEach((val, idx) => {
+                        if (yPos > 250) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        
+                        // Validation case box
+                        const boxColor = val.outcome === 'correct' ? [72, 187, 120] : [245, 101, 101];
+                        doc.setDrawColor(...boxColor);
+                        doc.setLineWidth(0.5);
+                        doc.rect(leftMargin, yPos - 5, pageWidth, 35);
+                        
+                        doc.setFontSize(11);
+                        doc.setTextColor(...boxColor);
+                        doc.text(`${val.outcome === 'correct' ? '✓' : '✗'} Case ${idx + 1}: ${new Date(val.predictionDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`, leftMargin + 3, yPos);
+                        
+                        yPos += 7;
+                        doc.setFontSize(9);
+                        doc.setTextColor(0, 0, 0);
+                        
+                        const lines = [
+                            `Predicted: ${val.predicted} (Score: ${val.predictedScore})`,
+                            `Actual: ${val.actual}`,
+                            `Details: ${val.details.substring(0, 90)}...`,
+                            `Source: ${val.source}`
+                        ];
+                        
+                        lines.forEach(line => {
+                            const splitLines = doc.splitTextToSize(line, pageWidth - 6);
+                            splitLines.forEach(splitLine => {
+                                doc.text(splitLine, leftMargin + 3, yPos);
+                                yPos += 5;
+                            });
+                        });
+                        
+                        yPos += 8;
+                    });
+                }
+                
+                // Section: Methodology
+                doc.addPage();
+                yPos = 20;
+                
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Methodology', leftMargin, yPos);
+                
+                yPos += 10;
+                doc.setFontSize(10);
+                
+                const methodologyText = [
+                    'PHEN-RISK uses satellite-derived vegetation indices (NDVI) from multiple satellites',
+                    '(Sentinel-2, Landsat 8/9, and MODIS) to detect vegetation stress anomalies.',
+                    '',
+                    'Risk scores are calculated by combining:',
+                    '  • NDVI Z-scores: Deviation from long-term average vegetation conditions',
+                    '  • Price trends: Market price movements for staple foods',
+                    '  • Historical patterns: Previous crisis correlations',
+                    '',
+                    'Validation is performed against:',
+                    '  • FEWS NET price data and market analysis',
+                    '  • IPC/Cadre Harmonisé food security classifications',
+                    '  • FAO GIEWS crop production assessments',
+                    '',
+                    'Lead time: Predictions are made 2-4 months before crisis emergence,',
+                    'allowing early intervention and resource mobilization.'
+                ];
+                
+                methodologyText.forEach(line => {
+                    doc.text(line, leftMargin, yPos);
+                    yPos += 6;
+                });
+                
+                // Footer on last page
+                yPos += 15;
+                doc.setFontSize(8);
+                doc.setTextColor(113, 128, 150);
+                doc.text('PHEN-RISK: Phenological Risk Intelligence System', leftMargin, yPos);
+                yPos += 5;
+                doc.text('Multi-Satellite Early Warning System for Food Security', leftMargin, yPos);
+                yPos += 5;
+                doc.text('https://github.com/ecosynthralab/Phen-Risk', leftMargin, yPos);
+                
+                // Save PDF
+                doc.save(`phen-risk-report-${selectedDistrict}-${new Date().toISOString().split('T')[0]}.pdf`);
+            };
+
             const highRiskMonths = currentData.timeseries.filter(d => d.risk_level === 'HIGH RISK');
             const moderateRiskMonths = currentData.timeseries.filter(d => d.risk_level === 'MODERATE RISK');
             const avgRiskScore = Math.round(currentData.timeseries.reduce((sum, d) => sum + d.risk_score, 0) / currentData.timeseries.length);
@@ -1561,11 +1789,8 @@
                                 </div>
                             </div>
 
-                            {/* Data Quality */}
-                            <DataQualityPanel currentData={currentData} />
-
-                            {/* Risk Table */}
-                            <div className="card">
+                            {/* Risk Table - Directly under chart */}
+                            <div className="card" style={{marginBottom: '24px'}}>
                                 <div className="card-header">
                                     <div className="card-title">Monthly Risk Assessment</div>
                                 </div>
@@ -1610,6 +1835,9 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            {/* Data Quality */}
+                            <DataQualityPanel currentData={currentData} />
                         </>
                     )}
 
@@ -1692,12 +1920,27 @@
                                 </p>
                                 
                                 <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    <button className="btn btn-primary" onClick={exportToPDF}>
+                                        📑 Export PDF Report
+                                    </button>
+                                    <div style={{fontSize: '12px', color: 'var(--text-gray)', marginLeft: '8px', marginTop: '-8px'}}>
+                                        Includes charts, risk scores, validation history & methodology
+                                    </div>
+                                    
                                     <button className="btn btn-primary" onClick={exportToCSV}>
                                         📄 Export as CSV
                                     </button>
+                                    <div style={{fontSize: '12px', color: 'var(--text-gray)', marginLeft: '8px', marginTop: '-8px'}}>
+                                        Raw data for analysis in Excel or other tools
+                                    </div>
+                                    
                                     <button className="btn btn-primary" onClick={exportToJSON}>
-                                        📋 Export as JSON (with validation)
+                                        📋 Export as JSON
                                     </button>
+                                    <div style={{fontSize: '12px', color: 'var(--text-gray)', marginLeft: '8px', marginTop: '-8px'}}>
+                                        Complete data including validation history
+                                    </div>
+                                    
                                     <button className="btn btn-secondary" onClick={() => setShowExportModal(false)}>
                                         Cancel
                                     </button>
